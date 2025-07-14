@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebSocket Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; background: white; }
+    .message { margin-bottom: 10px; }
+    .location { color: blue; }
+    .alert { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>WebSocket Chat</h1>
+  <input id="username" placeholder="Enter your username" />
+  <button onclick="setUsername()">Set Username</button>
+  <div id="chat"></div>
+
+  <input id="msg" placeholder="Enter message" />
+  <button onclick="sendMessage()">Send</button>
+  <button onclick="shareLocation()">Share Location</button>
+  <button onclick="sendAlert()">Send Alert</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let username = "";
+
+    const chat = document.getElementById("chat");
+
+    function appendMessage(content, className = "") {
+      const div = document.createElement("div");
+      div.className = `message ${className}`;
+      div.innerHTML = content;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function setUsername() {
+      username = document.getElementById("username").value || "Guest";
+      socket.emit("set-username", username);
+    }
+
+    function sendMessage() {
+      const msg = document.getElementById("msg").value;
+      if (msg) socket.emit("message", msg);
+      document.getElementById("msg").value = "";
+    }
+
+    function shareLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+          };
+          socket.emit("location-share", location);
+        });
+      }
+    }
+
+    function sendAlert() {
+      const alertMsg = prompt("Enter your alert message:");
+      if (alertMsg) socket.emit("alert", alertMsg);
+    }
+
+    socket.on("chat-log", (log) => {
+      log.forEach(msg => renderMessage(msg));
+    });
+
+    socket.on("message", renderMessage);
+    socket.on("location", renderMessage);
+    socket.on("alert", renderMessage);
+
+    function renderMessage(data) {
+      if (data.type === "message") {
+        appendMessage(`${data.avatar} <strong>${data.username}</strong> [${data.time}]: ${data.text}`);
+      } else if (data.type === "location") {
+        appendMessage(`${data.avatar} <strong>${data.username}</strong> [${data.time}] shared location: <a href="https://www.google.com/maps?q=${data.location.lat},${data.location.lon}" target="_blank">View Map</a>`, "location");
+      } else if (data.type === "alert") {
+        appendMessage(`${data.avatar} <strong>${data.username}</strong> [${data.time}] ALERT: ${data.text}`, "alert");
+      }
+    }
+  </script>
+</body>
+</html>

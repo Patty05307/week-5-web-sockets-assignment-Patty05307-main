@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Then paste your custom global CSS below */
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  ...
+}
